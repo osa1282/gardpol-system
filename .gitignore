@@ -1,0 +1,5 @@
+.DS_Store
+db_backups/
+designs/
+erp-system/node_modules/
+erp-system-backend/node_modules/
