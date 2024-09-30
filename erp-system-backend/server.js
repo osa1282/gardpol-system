@@ -361,3 +361,51 @@ app.get('/api/entries', authenticateToken, async (req, res) => {
       res.status(500).json({ error: 'Błąd podczas dodawania wpisu', details: error.message });
     }
   });
+
+  // Endpoint do pobierania dostępnych statusów
+app.get('/api/statuses', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM user_statuses');
+    res.json(rows);
+  } catch (error) {
+    console.error('Błąd pobierania statusów:', error);
+    res.status(500).json({ error: 'Błąd podczas pobierania statusów' });
+  }
+});
+
+// Endpoint do dodawania nowego statusu (tylko dla administratorów)
+app.post('/api/statuses', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.roleId > 2) {
+      return res.status(403).json({ error: 'Brak uprawnień' });
+    }
+
+    const { name, color } = req.body;
+    const [result] = await pool.query(
+      'INSERT INTO user_statuses (name, color) VALUES (?, ?)',
+      [name, color]
+    );
+    
+    res.status(201).json({ message: 'Status dodany pomyślnie', statusId: result.insertId });
+  } catch (error) {
+    console.error('Błąd dodawania statusu:', error);
+    res.status(500).json({ error: 'Błąd podczas dodawania statusu' });
+  }
+});
+
+// Endpoint do aktualizacji statusu użytkownika
+app.put('/api/user/status', authenticateToken, async (req, res) => {
+  try {
+    const { statusId } = req.body;
+    await pool.query('UPDATE uzytkownicy SET status_id = ? WHERE id = ?', [statusId, req.user.userId]);
+    res.json({ message: 'Status zaktualizowany pomyślnie' });
+  } catch (error) {
+    console.error('Błąd aktualizacji statusu:', error);
+    res.status(500).json({ error: 'Błąd podczas aktualizacji statusu' });
+  }
+});
+
+app.get('/api/verify-token', authenticateToken, (req, res) => {
+  // Jeśli middleware authenticateToken przepuścił żądanie, token jest ważny
+  res.json({ valid: true });
+});

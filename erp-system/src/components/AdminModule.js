@@ -10,11 +10,14 @@ export default function AdminModule() {
     imie: '',
     nazwisko: '',
   });
+  const [statuses, setStatuses] = useState([]);
+  const [newStatus, setNewStatus] = useState({ name: '', color: '#000000' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchUsers();
+    fetchStatuses();
   }, []);
 
   const fetchUsers = async () => {
@@ -33,8 +36,28 @@ export default function AdminModule() {
     }
   };
 
+  const fetchStatuses = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/statuses', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStatuses(data);
+      } else {
+        setError('Nie udało się pobrać listy statusów');
+      }
+    } catch (err) {
+      setError('Wystąpił błąd podczas pobierania statusów');
+    }
+  };
+
   const handleInputChange = (e) => {
     setNewUser({ ...newUser, [e.target.name]: e.target.value });
+  };
+
+  const handleStatusInputChange = (e) => {
+    setNewStatus({ ...newStatus, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -65,6 +88,30 @@ export default function AdminModule() {
       }
     } catch (err) {
       setError('Wystąpił błąd podczas tworzenia użytkownika');
+    }
+  };
+
+  const handleAddStatus = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5001/api/statuses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(newStatus),
+      });
+      if (response.ok) {
+        setSuccess('Status został pomyślnie dodany');
+        setNewStatus({ name: '', color: '#000000' });
+        fetchStatuses();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Nie udało się dodać statusu');
+      }
+    } catch (err) {
+      setError('Wystąpił błąd podczas dodawania statusu');
     }
   };
 
@@ -163,7 +210,7 @@ export default function AdminModule() {
             </button>
           </form>
 
-          <div>
+          <div className="mb-5">
             <h3 className="text-lg font-semibold mb-3">Lista użytkowników</h3>
             <ul className="divide-y divide-gray-200">
               {users.map((user) => (
@@ -179,6 +226,46 @@ export default function AdminModule() {
                     <option value="3">Handlowiec</option>
                     <option value="4">Pracownik</option>
                   </select>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <form onSubmit={handleAddStatus} className="mb-5">
+            <h3 className="text-lg font-semibold mb-3">Dodaj nowy status</h3>
+            <div className="flex space-x-2">
+              <input
+                name="name"
+                value={newStatus.name}
+                onChange={handleStatusInputChange}
+                placeholder="Nazwa statusu"
+                className="border rounded px-3 py-2 flex-grow"
+                required
+              />
+              <input
+                name="color"
+                type="color"
+                value={newStatus.color}
+                onChange={handleStatusInputChange}
+                className="border rounded px-3 py-2"
+                required
+              />
+              <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Dodaj status
+              </button>
+            </div>
+          </form>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Lista statusów</h3>
+            <ul className="divide-y divide-gray-200">
+              {statuses.map((status) => (
+                <li key={status.id} className="py-2 flex justify-between items-center">
+                  <span>{status.name}</span>
+                  <div
+                    className="w-6 h-6 rounded-full"
+                    style={{ backgroundColor: status.color }}
+                  ></div>
                 </li>
               ))}
             </ul>
